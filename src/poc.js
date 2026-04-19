@@ -1,11 +1,12 @@
 export async function handlePoc(request, env) {
   const targetUrl = env.TARGET_URL || 'https://www.sspa.juntadeandalucia.es/servicioandaluzdesalud/clicsalud/pages/anonimo/historia/medicacion/medicacionActiva.jsf?opcionSeleccionada=MUMEDICACION';
+  const userAgent = request.headers.get('User-Agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36';
 
   try {
-    // Paso 1: Obtener ViewState y JSESSIONID inicial de la página oficial
+    // Paso 1: Obtener ViewState y JSESSIONID inicial de la página oficial usando el mismo User-Agent que el usuario
     const response = await fetch(targetUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+        'User-Agent': userAgent
       }
     });
 
@@ -35,7 +36,7 @@ export async function handlePoc(request, env) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ClicSalud+ Pro</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #f8fafc; font-family: -apple-system, sans-serif; }
@@ -46,14 +47,15 @@ export async function handlePoc(request, env) {
             bottom: 0; 
             left: 0; 
             right: 0; 
-            background: rgba(15, 23, 42, 0.9); 
+            background: rgba(15, 23, 42, 0.95); 
             color: white; 
             font-size: 10px; 
-            padding: 4px 15px; 
+            padding: 5px 15px; 
+            padding-bottom: env(safe-area-inset-bottom, 5px);
             z-index: 100; 
             display: flex; 
             justify-content: space-between;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(8px);
             border-top: 1px solid rgba(255,255,255,0.1);
         }
 
@@ -73,31 +75,46 @@ export async function handlePoc(request, env) {
         }
 
         .spinner { 
-            border: 4px solid #f1f5f9; 
-            border-top: 4px solid #3b82f6; 
+            border: 3px solid #f1f5f9; 
+            border-top: 3px solid #3b82f6; 
             border-radius: 50%; 
             width: 48px; 
             height: 48px; 
-            animation: spin 1s linear infinite; 
+            animation: spin 0.8s linear infinite; 
             margin-bottom: 24px; 
         }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         h2 { color: #0f172a; font-size: 1.25rem; margin: 0; font-weight: 700; }
-        p { color: #64748b; font-size: 0.875rem; margin-top: 8px; }
+        p { color: #64748b; font-size: 0.9rem; margin-top: 8px; text-align: center; max-width: 80%; }
+
+        .fallback-btn {
+            margin-top: 25px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: none;
+            text-decoration: none;
+            font-size: 14px;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+        }
     </style>
 </head>
 <body>
     <div id="loading" class="loading-overlay">
         <div class="spinner"></div>
-        <h2>Cargando ClicSalud+</h2>
-        <p>Estableciendo conexión segura...</p>
+        <h2 id="status-title">Iniciando sesión segura</h2>
+        <p id="status-desc">Conectando con ClicSalud+...</p>
+        <a href="/" target="_top" id="fallback" class="fallback-btn">Usar modo de redirección directa</a>
     </div>
 
     <div class="status-bar">
-        <span>URL Persistente: medicacion.sirul.net</span>
-        <span>Autenticación TLS Directa</span>
+        <span> medicacion.sirul.net </span>
+        <span id="domain-info">Modo Iframe Activo</span>
     </div>
 
     <iframe id="main-frame" name="main-frame" src="about:blank"></iframe>
@@ -113,20 +130,34 @@ export async function handlePoc(request, env) {
         const form = document.getElementById('auth-form');
         const iframe = document.getElementById('main-frame');
         const loading = document.getElementById('loading');
+        const statusTitle = document.getElementById('status-title');
+        const statusDesc = document.getElementById('status-desc');
+        const fallback = document.getElementById('fallback');
 
-        // Escuchar el load del iframe para ocultar el splash screen
         iframe.onload = function() {
-            // Un pequeño retraso para que la página de la Junta se renderice un poco
-            setTimeout(() => {
-                loading.style.opacity = '0';
-                setTimeout(() => loading.style.display = 'none', 500);
-            }, 800);
+            if (iframe.src !== 'about:blank') {
+                statusTitle.innerText = "Sincronizado";
+                statusDesc.innerText = "Acceso establecido con éxito.";
+                setTimeout(() => {
+                    loading.style.opacity = '0';
+                    setTimeout(() => loading.style.display = 'none', 500);
+                }, 800);
+            }
         };
 
-        // Enviar el formulario al iframe
+        // Tiempo de espera para detectar bloqueo de cookies de terceros
+        setTimeout(() => {
+            if (loading.style.display !== 'none') {
+                statusTitle.innerText = "Aviso del Sistema";
+                statusDesc.innerHTML = "Es posible que tu navegador esté bloqueando el inicio de sesión dentro de este marco.<br><br>Si no carga, pulsa aquí:";
+                fallback.style.display = 'inline-block';
+            }
+        }, 6000);
+
+        // Envío del formulario
         setTimeout(() => {
             form.submit();
-        }, 100);
+        }, 200);
     </script>
 </body>
 </html>
@@ -139,9 +170,7 @@ export async function handlePoc(request, env) {
       }
     });
   } catch (err) {
-    return new Response('Error en el POC de Iframe: ' + err.message, {
-      status: 500,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-    });
+    return new Response('Error en POC: ' + err.message, { status: 500 });
   }
 }
+
