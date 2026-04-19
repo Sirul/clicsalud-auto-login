@@ -47,7 +47,8 @@ export default {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso Seguro a ClicSalud+</title>
+    <title>Mis Recetas</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%232563eb%22/><path d=%22M30 35h40v40H30z%22 fill=%22white%22/><rect x=%2245%22 y=%2220%22 width=%2210%22 height=%2220%22 rx=%222%22 fill=%22%232563eb%22/><path d=%22M40 55h20M50 45v20%22 stroke=%22%232563eb%22 stroke-width=%228%22 stroke-linecap=%22round%22/></svg>">
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
