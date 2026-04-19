@@ -1,6 +1,15 @@
+import { handlePoc } from './poc.js';
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    // Ruta específica para el Experimento (Iframe POC)
+    if (url.pathname === '/poc') {
+      return handlePoc(request, env);
+    }
+
+    // Lógica Original / Principal (Root)
     const targetUrl = env.TARGET_URL || 'https://www.sspa.juntadeandalucia.es/servicioandaluzdesalud/clicsalud/pages/anonimo/historia/medicacion/medicacionActiva.jsf?opcionSeleccionada=MUMEDICACION';
 
     try {
