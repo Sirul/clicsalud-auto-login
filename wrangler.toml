@@ -1,0 +1,6 @@
+name = "clicsalud-auto-login"
+main = "src/index.js"
+compatibility_date = "2024-04-19"
+
+[vars]
+TARGET_URL = "https://www.sspa.juntadeandalucia.es/servicioandaluzdesalud/clicsalud/pages/anonimo/historia/medicacion/medicacionActiva.jsf?opcionSeleccionada=MUMEDICACION"
