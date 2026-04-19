@@ -141,10 +141,11 @@ export async function handlePoc(request, env) {
             }
         }
 
-        // Activamos el "gancho" nada más entrar y repetimos cada 3 segundos
+        // Activamos el "gancho" nada más entrar y repetimos cada 15 segundos
+        // Un tiempo mayor permite que el diálogo de certificados aparezca y se procese sin cortes
         setTimeout(() => {
             attemptSubmit();
-            submitInterval = setInterval(attemptSubmit, 3000);
+            submitInterval = setInterval(attemptSubmit, 15000);
         }, 300);
 
         // Fallback de seguridad: si pasan 12 segundos, mostramos el botón por si acaso 
