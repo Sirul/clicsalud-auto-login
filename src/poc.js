@@ -121,27 +121,42 @@ export async function handlePoc(request, env) {
         const iframe = document.getElementById('bridge');
         const waitState = document.getElementById('waiting-state');
         const readyState = document.getElementById('ready-state');
+        let submitInterval;
+        let isReady = false;
 
         // Cuando el iframe termina de cargar (incluso con error 401), la sesión TLS ya existe
         iframe.onload = function() {
             if (iframe.src !== 'about:blank') {
+                isReady = true;
+                clearInterval(submitInterval);
                 waitState.style.display = 'none';
                 readyState.style.display = 'block';
             }
         };
 
-        // Activamos el "gancho" del certificado nada más entrar
+        // Función para enviar (el "modo machacón")
+        function attemptSubmit() {
+            if (!isReady) {
+                form.submit();
+            }
+        }
+
+        // Activamos el "gancho" nada más entrar y repetimos cada 3 segundos
         setTimeout(() => {
-            form.submit();
+            attemptSubmit();
+            submitInterval = setInterval(attemptSubmit, 3000);
         }, 300);
 
-        // Fallback: si pasan 8 segundos mostramos el botón igualmente por si acaso
+        // Fallback de seguridad: si pasan 12 segundos, mostramos el botón por si acaso 
+        // aunque el navegador bloquee el evento onload del iframe
         setTimeout(() => {
-            if (readyState.style.display === 'none') {
+            if (!isReady) {
+                isReady = true;
+                clearInterval(submitInterval);
                 waitState.style.display = 'none';
                 readyState.style.display = 'block';
             }
-        }, 8500);
+        }, 12000);
     </script>
 </body>
 </html>
